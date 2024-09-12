@@ -24,6 +24,7 @@ def encode(x):
 
 tokens_ds = ds.map(encode).take_all()
 tokens = [x['token'] for x in tokens_ds]
+tokens = [item for sublist in tokens for item in sublist]
 
 assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
 
