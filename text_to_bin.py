@@ -10,7 +10,7 @@ import random
 from tokenizer import Tokenizer
 import ray
 
-ray.init(num_cpus=128, num_gpus=8)
+ray.init()
 
 input_file_path = sys.argv[1]
 output_file_path = sys.argv[2]
@@ -19,11 +19,13 @@ tokenizer_path = "llama-models/models/llama3_1/Meta-Llama-3.1-8B/tokenizer.model
 ds = ray.data.read_text(input_file_path)
 
 tokenizer = Tokenizer(tokenizer_path)
-def encode(x):
-    return {'token': tokenizer.encode(x['text'], bos=True, eos=True)}
+def encode_batch(batch):
+    return [{'token': tokenizer.encode(x['text'], bos=True, eos=True)} for x in batch]
 
-tokens_ds = ds.map(encode).take_all()
-tokens = [x['token'] for x in tokens_ds]
+# Use map_batches to apply the encode function to batches of data
+tokens_ds = ds.map_batches(encode_batch, batch_size=1000)  # Adjust batch_size as needed
+
+tokens = [x['token'] for x in tokens_ds.take_all()]
 tokens = [item for sublist in tokens for item in sublist]
 
 assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
