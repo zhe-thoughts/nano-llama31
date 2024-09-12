@@ -27,7 +27,7 @@ def encode(x):
 
 # tokens = encode(text)
 
-tokens = ds.map(encode).flatten().collect()
+tokens = ds.flat_map(encode).collect()
 
 assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
 
