@@ -8,23 +8,26 @@ import numpy as np
 import sys
 import random
 from tokenizer import Tokenizer
+import ray
+
+ray.init(num_cpus=128, num_gpus=8)
 
 input_file_path = sys.argv[1]
 output_file_path = sys.argv[2]
 tokenizer_path = "llama-models/models/llama3_1/Meta-Llama-3.1-8B/tokenizer.model"
 
-with open(input_file_path, 'r') as f:
-    data = f.read()
-print(f"length of dataset in characters: {len(data):,}")
+ds = ray.data.read_text(input_file_path)
 
-with open(input_file_path, 'r') as file:
-    text = file.read()
+# with open(input_file_path, 'r') as file:
+#     text = file.read()
 
 tokenizer = Tokenizer(tokenizer_path)
 def encode(x):
     return tokenizer.encode(x, bos=True, eos=True)
 
-tokens = encode(text)
+# tokens = encode(text)
+
+tokens = ds.map(encode).flatten().collect()
 
 assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
 
@@ -41,3 +44,5 @@ print(f"writing {len(tokens):,} tokens to {output_file_path}")
 with open(output_file_path, "wb") as f:
     f.write(header.tobytes())
     f.write(tokens_np.tobytes())
+
+ray.shutdown()
