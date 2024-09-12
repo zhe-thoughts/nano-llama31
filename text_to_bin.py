@@ -20,6 +20,8 @@ tokenizer_path = "llama-models/models/llama3_1/Meta-Llama-3.1-8B/tokenizer.model
 with open(input_file_path, 'r') as f:
     data = f.readlines()
 
+print(f"finished reading: {len(data):,} lines")
+
 # Initialize the tokenizer
 tokenizer = Tokenizer(tokenizer_path)
 
@@ -28,7 +30,7 @@ def encode_batch(batch):
     return [tokenizer.encode(x, bos=True, eos=True) for x in batch]
 
 # Split data into batches
-batch_size = 1000  # Adjust batch_size as needed
+batch_size = 10  # Adjust batch_size as needed
 batches = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
 
 # Distribute the batches to the remote function
