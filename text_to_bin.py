@@ -16,17 +16,29 @@ input_file_path = sys.argv[1]
 output_file_path = sys.argv[2]
 tokenizer_path = "llama-models/models/llama3_1/Meta-Llama-3.1-8B/tokenizer.model"
 
-ds = ray.data.read_text(input_file_path)
+# Read the input file
+with open(input_file_path, 'r') as f:
+    data = f.readlines()
 
+# Initialize the tokenizer
 tokenizer = Tokenizer(tokenizer_path)
+
+@ray.remote
 def encode_batch(batch):
-    return [{'token': tokenizer.encode(x['text'], bos=True, eos=True)} for x in batch]
+    return [tokenizer.encode(x, bos=True, eos=True) for x in batch]
 
-# Use map_batches to apply the encode function to batches of data
-tokens_ds = ds.map_batches(encode_batch, batch_size=1000)  # Adjust batch_size as needed
+# Split data into batches
+batch_size = 1000  # Adjust batch_size as needed
+batches = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
 
-tokens = [x['token'] for x in tokens_ds.take_all()]
-tokens = [item for sublist in tokens for item in sublist]
+# Distribute the batches to the remote function
+futures = [encode_batch.remote(batch) for batch in batches]
+
+# Collect the results
+results = ray.get(futures)
+
+# Flatten the list of lists
+tokens = [item for sublist in results for item in sublist]
 
 assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
 
