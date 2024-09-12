@@ -38,9 +38,12 @@ futures = [encode_batch.remote(batch) for batch in batches]
 
 # Collect the results
 results = ray.get(futures)
+results_combined = []
+for r in results:
+    results_combined += r
 
 # Flatten the list of lists
-tokens = [item for sublist in results for item in sublist]
+tokens = [item for sublist in results_combined for item in sublist]
 
 assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
 
