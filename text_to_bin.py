@@ -22,8 +22,8 @@ tokenizer = Tokenizer(tokenizer_path)
 def encode(x):
     return {'token': tokenizer.encode(x['text'], bos=True, eos=True)}
 
-tokens_np = ds.map(encode).take_all()
-tokens = [token['token'] for token in tokens_np]
+tokens_ds = ds.map(encode).take_all()
+tokens = [x['token'] for x in tokens_ds]
 
 assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
 
