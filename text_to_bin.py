@@ -18,16 +18,12 @@ tokenizer_path = "llama-models/models/llama3_1/Meta-Llama-3.1-8B/tokenizer.model
 
 ds = ray.data.read_text(input_file_path)
 
-# with open(input_file_path, 'r') as file:
-#     text = file.read()
-
 tokenizer = Tokenizer(tokenizer_path)
 def encode(x):
-    return tokenizer.encode(x, bos=True, eos=True)
+    return {'token': tokenizer.encode(x['text'], bos=True, eos=True)}
 
-# tokens = encode(text)
-
-tokens = ds.flat_map(encode).collect()
+tokens_np = ds.map(encode).take_all()
+tokens = [token['token'] for token in tokens_np]
 
 assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
 
