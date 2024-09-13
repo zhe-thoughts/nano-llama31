@@ -27,7 +27,7 @@ print(f"finished reading: {len(data):,} lines")
 tokenizer = Tokenizer(tokenizer_path)
 
 @ray.remote
-def process_batch(batch):
+def process_batch(batch, output_file_path)):
     tokens = []
     for line in batch:
         line = line.strip()
@@ -59,7 +59,7 @@ batch_size = int(len(data) / num_cpus)  # Adjust batch_size as needed
 batches = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
 
 # Distribute the batches to the remote function
-futures = [process_batch.remote(batch) for batch in batches]
+futures = [process_batch.remote(batch, output_file_path) for batch in batches]
 print(f"launched {len(batches):,} batches")
 
 # Collect the results
