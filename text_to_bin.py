@@ -28,7 +28,12 @@ tokenizer = Tokenizer(tokenizer_path)
 
 @ray.remote
 def process_batch(batch):
-    tokens = [tokenizer.encode(x, bos=True, eos=True) for x in batch]
+    tokens = []
+    for line in batch:
+        line = line.strip()
+        if not line:
+            continue
+        tokens += tokenizer.encode(line, bos=True, eos=True)
 
     assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
 
