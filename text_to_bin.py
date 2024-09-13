@@ -30,11 +30,12 @@ def encode_batch(batch):
     return [tokenizer.encode(x, bos=True, eos=True) for x in batch]
 
 # Split data into batches
-batch_size = 10  # Adjust batch_size as needed
+batch_size = 50  # Adjust batch_size as needed
 batches = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
 
 # Distribute the batches to the remote function
 futures = [encode_batch.remote(batch) for batch in batches]
+print(f"launched {len(batches):,} batches")
 
 # Collect the results
 results = ray.get(futures)
