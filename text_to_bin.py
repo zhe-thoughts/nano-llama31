@@ -27,7 +27,7 @@ print(f"finished reading: {len(data):,} lines")
 tokenizer = Tokenizer(tokenizer_path)
 
 @ray.remote
-def process_batch(batch, output_file_path)):
+def process_batch(batch, output_file_path):
     tokens = []
     for line in batch:
         line = line.strip()
