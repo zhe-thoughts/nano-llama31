@@ -30,7 +30,7 @@ def encode_batch(batch):
     return [tokenizer.encode(x, bos=True, eos=True) for x in batch]
 
 # Split data into batches
-batch_size = 50  # Adjust batch_size as needed
+batch_size = len(data) / 200  # Adjust batch_size as needed
 batches = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
 
 # Distribute the batches to the remote function
