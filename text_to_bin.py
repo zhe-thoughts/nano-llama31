@@ -11,6 +11,7 @@ from tokenizer import Tokenizer
 import ray
 
 ray.init()
+num_cpus = 200
 
 input_file_path = sys.argv[1]
 output_file_path = sys.argv[2]
@@ -26,40 +27,37 @@ print(f"finished reading: {len(data):,} lines")
 tokenizer = Tokenizer(tokenizer_path)
 
 @ray.remote
-def encode_batch(batch):
-    return [tokenizer.encode(x, bos=True, eos=True) for x in batch]
+def process_batch(batch):
+    tokens = [tokenizer.encode(x, bos=True, eos=True) for x in batch]
+
+    assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
+
+    # construct the header
+    header = np.zeros(256, dtype=np.int32)
+    header[0] = 20240801 # magic
+    header[1] = 7 # version
+    header[2] = len(tokens) # number of tokens after the 256*4 bytes of header (each 2 bytes as uint16)
+    # construct the tokens numpy array, if not already
+    tokens_np = np.array(tokens, dtype=np.uint32)
+
+    random_number = random.randint(1000, 9999)
+    output_file_path = f"{output_file_path}_{random_number}.bin"
+        
+    # write to file
+    print(f"writing {len(tokens):,} tokens to {output_file_path}")
+    with open(output_file_path, "wb") as f:
+        f.write(header.tobytes())
+        f.write(tokens_np.tobytes())
 
 # Split data into batches
-batch_size = int(len(data) / 200)  # Adjust batch_size as needed
+batch_size = int(len(data) / num_cpus)  # Adjust batch_size as needed
 batches = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
 
 # Distribute the batches to the remote function
-futures = [encode_batch.remote(batch) for batch in batches]
+futures = [process_batch.remote(batch) for batch in batches]
 print(f"launched {len(batches):,} batches")
 
 # Collect the results
 results = ray.get(futures)
-results_combined = []
-for r in results:
-    results_combined += r
-
-# Flatten the list of lists
-tokens = [item for sublist in results_combined for item in sublist]
-
-assert len(tokens) < 2**31, "token count too large" # ~2.1B tokens
-
- # construct the header
-header = np.zeros(256, dtype=np.int32)
-header[0] = 20240801 # magic
-header[1] = 7 # version
-header[2] = len(tokens) # number of tokens after the 256*4 bytes of header (each 2 bytes as uint16)
-# construct the tokens numpy array, if not already
-tokens_np = np.array(tokens, dtype=np.uint32)
-    
-# write to file
-print(f"writing {len(tokens):,} tokens to {output_file_path}")
-with open(output_file_path, "wb") as f:
-    f.write(header.tobytes())
-    f.write(tokens_np.tobytes())
 
 ray.shutdown()
